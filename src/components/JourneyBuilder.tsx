@@ -4,8 +4,10 @@ import { Input } from '@/components/ui/input';
 import { StationInput } from './StationInput';
 import { TrainCard } from './TrainCard';
 import { JourneyLeg, TrainService } from '@/types/train';
-import { generateMockTrains } from '@/lib/mockTrainData';
-import { Search, Plus, Save, X, Train, Loader2 } from 'lucide-react';
+import { searchTrains } from '@/lib/trainApi';
+import { getStationByName } from '@/lib/stations';
+import { Search, Plus, Save, X, Train, Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface JourneyBuilderProps {
   onSave: (legs: JourneyLeg[]) => void;
@@ -22,6 +24,7 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
   const [selectedTrain, setSelectedTrain] = useState<TrainService | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   const handleSearch = async () => {
     if (!fromStation || !toStation) return;
@@ -29,12 +32,35 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
     setIsSearching(true);
     setHasSearched(true);
     setSelectedTrain(null);
+    setSearchError(null);
     
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    // Look up CRS codes for the stations
+    const fromStationData = getStationByName(fromStation);
+    const toStationData = getStationByName(toStation);
     
-    const results = generateMockTrains(fromStation, toStation, time, date);
-    setSearchResults(results);
+    if (!fromStationData) {
+      setSearchError(`Could not find station code for "${fromStation}". Please select a station from the suggestions.`);
+      setIsSearching(false);
+      setSearchResults([]);
+      return;
+    }
+    
+    if (!toStationData) {
+      setSearchError(`Could not find station code for "${toStation}". Please select a station from the suggestions.`);
+      setIsSearching(false);
+      setSearchResults([]);
+      return;
+    }
+    
+    const result = await searchTrains(fromStationData.code, toStationData.code, date, time);
+    
+    if (result.success && result.data) {
+      setSearchResults(result.data);
+    } else {
+      setSearchError(result.error || 'Failed to search trains. Please try again.');
+      setSearchResults([]);
+    }
+    
     setIsSearching(false);
   };
 
@@ -182,8 +208,16 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
         </Button>
       </div>
 
+      {/* Search error */}
+      {searchError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{searchError}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Search results */}
-      {hasSearched && !isSearching && (
+      {hasSearched && !isSearching && !searchError && (
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-muted-foreground">
             {searchResults.length > 0 
