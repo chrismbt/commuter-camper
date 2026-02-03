@@ -1,149 +1,41 @@
-// Common UK railway stations with CRS codes for RTT integration
-export const ukStations = [
-  { code: 'ABD', name: 'Aberdeen' },
-  { code: 'ACT', name: 'Acton Main Line' },
-  { code: 'ALG', name: 'Aldershot' },
-  { code: 'AML', name: 'Amersham' },
-  { code: 'ANG', name: 'Angmering' },
-  { code: 'ASH', name: 'Ashford International' },
-  { code: 'AYR', name: 'Ayr' },
-  { code: 'BAN', name: 'Banbury' },
-  { code: 'BCK', name: 'Beckenham Junction' },
-  { code: 'BDM', name: 'Bedford' },
-  { code: 'BFR', name: 'Blackfriars' },
-  { code: 'BGM', name: 'Birmingham Moor Street' },
-  { code: 'BHI', name: 'Brighton' },
-  { code: 'BHM', name: 'Birmingham New Street' },
-  { code: 'BKG', name: 'Barking' },
-  { code: 'BMS', name: 'Birmingham Snow Hill' },
-  { code: 'BON', name: 'Boston' },
-  { code: 'BRI', name: 'Bristol Temple Meads' },
-  { code: 'BRN', name: 'Bourne End' },
-  { code: 'BTH', name: 'Bath Spa' },
-  { code: 'CAR', name: 'Carlisle' },
-  { code: 'CBG', name: 'Cambridge' },
-  { code: 'CDF', name: 'Cardiff Central' },
-  { code: 'CHM', name: 'Cheltenham Spa' },
-  { code: 'CHX', name: 'London Charing Cross' },
-  { code: 'CLJ', name: 'Clapham Junction' },
-  { code: 'COV', name: 'Coventry' },
-  { code: 'CRE', name: 'Crewe' },
-  { code: 'CTK', name: 'City Thameslink' },
-  { code: 'DFD', name: 'Dartford' },
-  { code: 'DID', name: 'Didcot Parkway' },
-  { code: 'DON', name: 'Doncaster' },
-  { code: 'DRB', name: 'Derby' },
-  { code: 'DVP', name: 'Dover Priory' },
-  { code: 'EAL', name: 'Ealing Broadway' },
-  { code: 'EDB', name: 'Edinburgh Waverley' },
-  { code: 'EPS', name: 'Epsom' },
-  { code: 'EUS', name: 'London Euston' },
-  { code: 'EXD', name: 'Exeter St Davids' },
-  { code: 'FST', name: 'London Fenchurch Street' },
-  { code: 'GCR', name: 'Gloucester' },
-  { code: 'GFD', name: 'Greenford' },
-  { code: 'GLC', name: 'Glasgow Central' },
-  { code: 'GLQ', name: 'Glasgow Queen Street' },
-  { code: 'GMT', name: 'Great Malvern' },
-  { code: 'GNW', name: 'Greenwich' },
-  { code: 'GTW', name: 'Gatwick Airport' },
-  { code: 'GLD', name: 'Guildford' },
-  { code: 'HAY', name: 'Hayes & Harlington' },
-  { code: 'HGS', name: 'Hastings' },
-  { code: 'HHE', name: 'Haywards Heath' },
-  { code: 'HIT', name: 'Hitchin' },
-  { code: 'HRW', name: 'Harrow & Wealdstone' },
-  { code: 'HST', name: 'Hampstead Heath' },
-  { code: 'HUD', name: 'Huddersfield' },
-  { code: 'HUL', name: 'Hull' },
-  { code: 'IPS', name: 'Ipswich' },
-  { code: 'KGX', name: 'London Kings Cross' },
-  { code: 'KLN', name: 'Kentish Town' },
-  { code: 'LAN', name: 'Lancaster' },
-  { code: 'LBG', name: 'London Bridge' },
-  { code: 'LDS', name: 'Leeds' },
-  { code: 'LEI', name: 'Leicester' },
-  { code: 'LIV', name: 'Liverpool Lime Street' },
-  { code: 'LPY', name: 'Liverpool South Parkway' },
-  { code: 'LST', name: 'London Liverpool Street' },
-  { code: 'LUT', name: 'Luton' },
-  { code: 'LUT', name: 'Luton Airport Parkway' },
-  { code: 'MAN', name: 'Manchester Piccadilly' },
-  { code: 'MCO', name: 'Manchester Oxford Road' },
-  { code: 'MCV', name: 'Manchester Victoria' },
-  { code: 'MIA', name: 'Birmingham International' },
-  { code: 'MKC', name: 'Milton Keynes Central' },
-  { code: 'MOG', name: 'Moorgate' },
-  { code: 'MYB', name: 'London Marylebone' },
-  { code: 'NCL', name: 'Newcastle' },
-  { code: 'NMP', name: 'Northampton' },
-  { code: 'NRW', name: 'Norwich' },
-  { code: 'NOT', name: 'Nottingham' },
-  { code: 'NWP', name: 'Newport (South Wales)' },
-  { code: 'OXF', name: 'Oxford' },
-  { code: 'PAD', name: 'London Paddington' },
-  { code: 'PBO', name: 'Peterborough' },
-  { code: 'PLY', name: 'Plymouth' },
-  { code: 'PMH', name: 'Portsmouth Harbour' },
-  { code: 'PMS', name: 'Portsmouth & Southsea' },
-  { code: 'PNZ', name: 'Penzance' },
-  { code: 'PRE', name: 'Preston' },
-  { code: 'PUT', name: 'Putney' },
-  { code: 'QRP', name: 'Queen\'s Road Peckham' },
-  { code: 'RDG', name: 'Reading' },
-  { code: 'RDH', name: 'Redhill' },
-  { code: 'RMD', name: 'Richmond' },
-  { code: 'SAL', name: 'Salisbury' },
-  { code: 'SBY', name: 'Shrewsbury' },
-  { code: 'SDN', name: 'Swindon' },
-  { code: 'SEV', name: 'Sevenoaks' },
-  { code: 'SFA', name: 'Stratford (London)' },
-  { code: 'SHF', name: 'Sheffield' },
-  { code: 'SOA', name: 'Southampton Airport Parkway' },
-  { code: 'SOT', name: 'Southampton Central' },
-  { code: 'SPL', name: 'Stalybridge' },
-  { code: 'SRA', name: 'Stratford-upon-Avon' },
-  { code: 'STP', name: 'London St Pancras' },
-  { code: 'STW', name: 'Stowmarket' },
-  { code: 'SUR', name: 'Surbiton' },
-  { code: 'SVG', name: 'Stevenage' },
-  { code: 'SWI', name: 'Swinton (South Yorkshire)' },
-  { code: 'TAU', name: 'Taunton' },
-  { code: 'TBD', name: 'Tunbridge Wells' },
-  { code: 'TON', name: 'Tonbridge' },
-  { code: 'TUN', name: 'Tunbridge Wells' },
-  { code: 'TWI', name: 'Twickenham' },
-  { code: 'VIC', name: 'London Victoria' },
-  { code: 'VXH', name: 'Vauxhall' },
-  { code: 'WAT', name: 'London Waterloo' },
-  { code: 'WBQ', name: 'Warrington Bank Quay' },
-  { code: 'WFJ', name: 'Watford Junction' },
-  { code: 'WGN', name: 'Wigan North Western' },
-  { code: 'WIM', name: 'Wimbledon' },
-  { code: 'WKM', name: 'Wokingham' },
-  { code: 'WNC', name: 'Winchester' },
-  { code: 'WOK', name: 'Woking' },
-  { code: 'WVH', name: 'Wolverhampton' },
-  { code: 'YRK', name: 'York' },
-  { code: 'ZFD', name: 'Farringdon' },
-];
+// Import the complete UK railway stations list
+import stationsData from '@/data/stations.json';
 
-export function searchStations(query: string): typeof ukStations {
+export interface Station {
+  code: string;
+  name: string;
+}
+
+// Transform the JSON data into our format
+export const ukStations: Station[] = stationsData.stations.map((station) => ({
+  code: station["CRS Code"],
+  name: station["Station Name"],
+}));
+
+export function searchStations(query: string): Station[] {
   const lowerQuery = query.toLowerCase();
   return ukStations.filter(
     (station) =>
       station.name.toLowerCase().includes(lowerQuery) ||
       station.code.toLowerCase().includes(lowerQuery)
-  );
+  ).slice(0, 10); // Limit results for performance
 }
 
-export function getStationByName(name: string): typeof ukStations[0] | undefined {
-  return ukStations.find(
+export function getStationByName(name: string): Station | undefined {
+  // Try exact match first
+  const exactMatch = ukStations.find(
     (station) => station.name.toLowerCase() === name.toLowerCase()
   );
+  if (exactMatch) return exactMatch;
+  
+  // Try partial match (for cases where user typed slightly different name)
+  return ukStations.find(
+    (station) => station.name.toLowerCase().includes(name.toLowerCase()) ||
+                 name.toLowerCase().includes(station.name.toLowerCase())
+  );
 }
 
-export function getStationByCode(code: string): typeof ukStations[0] | undefined {
+export function getStationByCode(code: string): Station | undefined {
   return ukStations.find(
     (station) => station.code.toLowerCase() === code.toLowerCase()
   );

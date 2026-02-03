@@ -15,73 +15,69 @@ interface TrainService {
   arrivalTime: string;
   platform?: string;
   status?: 'on-time' | 'delayed' | 'cancelled';
+  trainId?: string;
 }
 
 function parseHtmlToTrains(html: string, fromStation: string, toStation: string, date: string): TrainService[] {
   const trains: TrainService[] = [];
   
-  // Match service links with pattern /service/gb-nr:UID/DATE
-  const serviceRegex = /<a[^>]*href="\/service\/gb-nr:([A-Z0-9]+)\/(\d{4}-\d{2}-\d{2})"[^>]*>([\s\S]*?)<\/a>/gi;
+  // Match service links with pattern /service/gb-nr:UID/DATE/detailed
+  // Example: <a class="service " href="https://www.realtimetrains.co.uk/service/gb-nr:L76080/2026-02-04/detailed">
+  const serviceRegex = /<a[^>]*class="service[^"]*"[^>]*href="[^"]*\/service\/gb-nr:([A-Z0-9]+)\/(\d{4}-\d{2}-\d{2})[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
   
   let match;
   while ((match = serviceRegex.exec(html)) !== null) {
     const uid = match[1];
     const runDate = match[2];
-    const linkContent = match[3];
+    const serviceContent = match[3];
     
-    // Extract time - look for HH:MM pattern
-    const timeMatch = linkContent.match(/(\d{2}):(\d{2})/);
-    if (!timeMatch) continue;
+    // Extract departure time from <div class="time plan d gbtt">0840</div>
+    const depTimeMatch = serviceContent.match(/<div[^>]*class="time plan d[^"]*"[^>]*>(\d{4})<\/div>/i);
+    if (!depTimeMatch) continue;
     
-    const departureTime = `${timeMatch[1]}:${timeMatch[2]}`;
+    const depTime = depTimeMatch[1];
+    const departureTime = `${depTime.substring(0, 2)}:${depTime.substring(2, 4)}`;
     
-    // Get the full service row context
-    const rowStart = html.lastIndexOf('<div class="service', match.index);
-    const rowEnd = html.indexOf('</div>', match.index + match[0].length);
-    const rowContext = rowStart > -1 && rowEnd > -1 ? html.substring(rowStart, rowEnd + 6) : '';
+    // Extract arrival time from <div class="time plan a gbtt">0839</div>
+    const arrTimeMatch = serviceContent.match(/<div[^>]*class="time plan a[^"]*"[^>]*>(\d{4})<\/div>/i);
+    const arrTime = arrTimeMatch ? arrTimeMatch[1] : depTime;
+    const arrivalTime = `${arrTime.substring(0, 2)}:${arrTime.substring(2, 4)}`;
     
-    // Try to extract destination from the row
-    const destMatch = rowContext.match(/class="[^"]*destination[^"]*"[^>]*>([^<]+)</i) ||
-                      rowContext.match(/>([A-Z][a-z]+(?: [A-Z][a-z]+)*)</);
+    // Extract origin from <div class="location o"><span>London Waterloo</span></div>
+    const originMatch = serviceContent.match(/<div[^>]*class="location o[^"]*"[^>]*><span>([^<]+)<\/span><\/div>/i);
+    const origin = originMatch ? originMatch[1].trim() : fromStation;
+    
+    // Extract destination from <div class="location d"><span>London Waterloo</span></div>
+    const destMatch = serviceContent.match(/<div[^>]*class="location d[^"]*"[^>]*><span>([^<]+)<\/span><\/div>/i);
     const destination = destMatch ? destMatch[1].trim() : toStation;
     
-    // Extract operator
-    const operatorMatch = rowContext.match(/class="[^"]*toc[^"]*"[^>]*>([^<]+)</i) ||
-                          rowContext.match(/title="([^"]+)"/);
-    const operatorName = operatorMatch ? operatorMatch[1].trim() : 'Unknown';
-    
-    // Extract platform if available
-    const platformMatch = rowContext.match(/[Pp]lat(?:form)?\s*(\d+[a-zA-Z]?)/);
+    // Extract platform from <div class="platform c exp">10</div>
+    const platformMatch = serviceContent.match(/<div[^>]*class="platform[^"]*"[^>]*>(\d+[a-zA-Z]?)<\/div>/i);
     const platform = platformMatch ? platformMatch[1] : undefined;
     
-    // Extract status
-    let status: 'on-time' | 'delayed' | 'cancelled' | undefined;
-    if (rowContext.toLowerCase().includes('cancelled') || rowContext.toLowerCase().includes('cancel')) {
-      status = 'cancelled';
-    } else if (rowContext.toLowerCase().includes('late') || rowContext.toLowerCase().includes('delayed')) {
-      status = 'delayed';
-    } else if (rowContext.toLowerCase().includes('on time') || rowContext.toLowerCase().includes('rt')) {
-      status = 'on-time';
-    }
+    // Extract TOC from <div class="toc">SW</div>
+    const tocMatch = serviceContent.match(/<div[^>]*class="toc"[^>]*>([^<]+)<\/div>/i);
+    const atocCode = tocMatch ? tocMatch[1].trim() : 'XX';
     
-    // Calculate approximate arrival time (we don't have it from the list view)
-    const arrivalTime = departureTime; // Will be updated when we have detailed view
+    // Extract train ID from <div class="tid">2O11</div>
+    const tidMatch = serviceContent.match(/<div[^>]*class="tid"[^>]*>([^<]+)<\/div>/i);
+    const trainId = tidMatch ? tidMatch[1].trim() : '';
     
-    // Get ATOC code from operator name
-    const atocCode = getAtocCode(operatorName);
+    // Get operator name from ATOC code
+    const atocName = getOperatorName(atocCode);
     
     trains.push({
       trainUid: uid,
       runDate,
       serviceUid: `${runDate.replace(/-/g, '')}${uid}`,
       atocCode,
-      atocName: operatorName,
-      origin: fromStation,
+      atocName,
+      origin,
       destination,
       departureTime,
       arrivalTime,
       platform,
-      status,
+      trainId,
     });
   }
   
@@ -96,37 +92,37 @@ function parseHtmlToTrains(html: string, fromStation: string, toStation: string,
   return uniqueTrains.sort((a, b) => a.departureTime.localeCompare(b.departureTime));
 }
 
-function getAtocCode(operatorName: string): string {
+function getOperatorName(atocCode: string): string {
   const mapping: Record<string, string> = {
-    'Great Western Railway': 'GW',
-    'South Western Railway': 'SW',
-    'Southeastern': 'SE',
-    'Thameslink': 'TL',
-    'Avanti West Coast': 'AW',
-    'CrossCountry': 'XC',
-    'Northern': 'NT',
-    'East Midlands Railway': 'EM',
-    'LNER': 'GR',
-    'ScotRail': 'SR',
-    'TransPennine Express': 'TP',
-    'Greater Anglia': 'LE',
-    'c2c': 'CC',
-    'Chiltern Railways': 'CH',
-    'West Midlands Trains': 'LM',
-    'London Overground': 'LO',
-    'Elizabeth line': 'XR',
-    'Merseyrail': 'ME',
-    'Southern': 'SN',
-    'Gatwick Express': 'GX',
-    'GTR': 'TL',
+    'GW': 'Great Western Railway',
+    'SW': 'South Western Railway',
+    'SE': 'Southeastern',
+    'TL': 'Thameslink',
+    'VT': 'Avanti West Coast',
+    'XC': 'CrossCountry',
+    'NT': 'Northern',
+    'EM': 'East Midlands Railway',
+    'GR': 'LNER',
+    'SR': 'ScotRail',
+    'TP': 'TransPennine Express',
+    'LE': 'Greater Anglia',
+    'CC': 'c2c',
+    'CH': 'Chiltern Railways',
+    'LM': 'West Midlands Trains',
+    'LO': 'London Overground',
+    'XR': 'Elizabeth line',
+    'ME': 'Merseyrail',
+    'SN': 'Southern',
+    'GX': 'Gatwick Express',
+    'AW': 'Transport for Wales',
+    'HT': 'Hull Trains',
+    'GC': 'Grand Central',
+    'HX': 'Heathrow Express',
+    'IL': 'Island Line',
+    'LT': 'London Underground',
   };
   
-  for (const [name, code] of Object.entries(mapping)) {
-    if (operatorName.toLowerCase().includes(name.toLowerCase())) {
-      return code;
-    }
-  }
-  return 'XX';
+  return mapping[atocCode] || atocCode;
 }
 
 Deno.serve(async (req) => {
@@ -147,8 +143,8 @@ Deno.serve(async (req) => {
     // Format time to HHMM
     const timeFormatted = time.replace(':', '');
     
-    // Build the RTT URL
-    const url = `https://www.realtimetrains.co.uk/search/simple/gb-nr:${fromCrs}/to/gb-nr:${toCrs}/${date}/${timeFormatted}`;
+    // Build the RTT URL - use detailed view which has better structure
+    const url = `https://www.realtimetrains.co.uk/search/detailed/gb-nr:${fromCrs}/to/gb-nr:${toCrs}/${date}/${timeFormatted}`;
     
     console.log('Fetching RTT URL:', url);
 
