@@ -202,10 +202,84 @@ function getOperatorName(atocCode: string): string {
   return mapping[atocCode] || atocCode;
 }
 
+function getStationNameFromCrs(crs: string): string {
+  // Common UK station CRS to name mapping
+  const mapping: Record<string, string> = {
+    'PAD': 'London Paddington',
+    'BRI': 'Bristol Temple Meads',
+    'BPW': 'Bristol Parkway',
+    'BTM': 'Bristol Temple Meads',
+    'EUS': 'London Euston',
+    'KGX': 'London Kings Cross',
+    'VIC': 'London Victoria',
+    'WAT': 'London Waterloo',
+    'CHX': 'London Charing Cross',
+    'LST': 'London Liverpool Street',
+    'STP': 'London St Pancras',
+    'MAN': 'Manchester Piccadilly',
+    'MCV': 'Manchester Victoria',
+    'BHM': 'Birmingham New Street',
+    'LDS': 'Leeds',
+    'EDB': 'Edinburgh Waverley',
+    'GLC': 'Glasgow Central',
+    'CLJ': 'Clapham Junction',
+    'VXH': 'Vauxhall',
+    'RDG': 'Reading',
+    'OXF': 'Oxford',
+    'CBG': 'Cambridge',
+    'NCL': 'Newcastle',
+    'YRK': 'York',
+    'SHF': 'Sheffield',
+    'NTG': 'Nottingham',
+    'LIV': 'Liverpool Lime Street',
+    'CRE': 'Crewe',
+    'SOU': 'Southampton Central',
+    'BHD': 'Brighton',
+    'GTW': 'Gatwick Airport',
+    'LTN': 'Luton Airport Parkway',
+    'STN': 'Stansted Airport',
+    'EXD': 'Exeter St Davids',
+    'PLY': 'Plymouth',
+    'PNZ': 'Penzance',
+    'CDF': 'Cardiff Central',
+    'SWA': 'Swansea',
+    'NWP': 'Newport',
+    'ABD': 'Aberdeen',
+    'INV': 'Inverness',
+  };
+  
+  return mapping[crs] || crs;
+}
+
 function extractOriginStationName(html: string): string {
   // Extract from header: <h3>London Paddington <small>around 0900 on 04/02/2026</small></h3>
   const headerMatch = html.match(/<h3>\s*([^<]+?)\s*<small>/i);
   return headerMatch ? headerMatch[1].trim() : '';
+}
+
+function extractDestinationStationName(html: string): string {
+  // Extract destination from the search results page
+  // Look for pattern in the page title or breadcrumb: "to Bristol Temple Meads"
+  // Or from the search filter display
+  const toMatch = html.match(/to\s+(?:gb-nr:)?([A-Z]{3})\s*<\/a>\s*<\/li>/i);
+  if (toMatch) {
+    // We found a CRS code, but we need the name
+    // Look for the station name in a different pattern
+  }
+  
+  // Try to find in the page structure - look for destination in filter or breadcrumb
+  const destMatch = html.match(/<li[^>]*class="[^"]*dest[^"]*"[^>]*>([^<]+)<\/li>/i);
+  if (destMatch) {
+    return destMatch[1].trim();
+  }
+  
+  // Try another pattern - the "to" link in navigation
+  const toNavMatch = html.match(/class="to"[^>]*>\s*<a[^>]*>([^<]+)<\/a>/i);
+  if (toNavMatch) {
+    return toNavMatch[1].trim();
+  }
+  
+  return '';
 }
 
 Deno.serve(async (req) => {
@@ -258,10 +332,21 @@ Deno.serve(async (req) => {
     const parsedTrains = parseSearchResultsToTrains(html);
     console.log('Parsed trains:', parsedTrains.length);
 
-    // Fetch arrival times for each train (in parallel, limit to first 10 for performance)
+    // We need to get the destination station name for fetching arrival times
+    // Extract it from the search results page or look it up from CRS code
+    let destinationStationName = extractDestinationStationName(html);
+    
+    // If we couldn't extract it, we'll need to use the CRS code to look it up
+    // For now, we'll use a simple mapping of common stations
+    if (!destinationStationName) {
+      destinationStationName = getStationNameFromCrs(toCrs);
+    }
+    console.log('Destination station for arrival lookup:', destinationStationName);
+
+    // Fetch arrival times for each train at the USER'S destination (not train terminus)
     const trainsToFetch = parsedTrains.slice(0, 10);
     const arrivalPromises = trainsToFetch.map(train => 
-      fetchArrivalTime(train.uid, train.runDate, train.destination)
+      fetchArrivalTime(train.uid, train.runDate, destinationStationName)
     );
     
     const arrivalTimes = await Promise.all(arrivalPromises);
