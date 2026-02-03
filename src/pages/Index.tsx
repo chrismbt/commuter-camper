@@ -3,32 +3,57 @@ import { Button } from '@/components/ui/button';
 import { Header } from '@/components/Header';
 import { JourneyBuilder } from '@/components/JourneyBuilder';
 import { JourneyList } from '@/components/JourneyList';
+import { AuthForm } from '@/components/AuthForm';
 import { useJourneys } from '@/hooks/useJourneys';
+import { useAuth } from '@/hooks/useAuth';
 import { JourneyLeg } from '@/types/train';
-import { Plus, History } from 'lucide-react';
+import { Plus, History, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const [isBuilding, setIsBuilding] = useState(false);
-  const { journeys, addJourney, deleteJourney } = useJourneys();
+  const { journeys, loading: journeysLoading, addJourney, deleteJourney } = useJourneys();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
-  const handleSaveJourney = (legs: JourneyLeg[]) => {
-    addJourney(legs);
-    setIsBuilding(false);
-    toast({
-      title: 'Journey saved',
-      description: `Recorded ${legs.length} train${legs.length > 1 ? 's' : ''} in your journey log.`,
-    });
+  const handleSaveJourney = async (legs: JourneyLeg[]) => {
+    const result = await addJourney(legs);
+    if (result) {
+      setIsBuilding(false);
+      toast({
+        title: 'Journey saved',
+        description: `Recorded ${legs.length} train${legs.length > 1 ? 's' : ''} in your journey log.`,
+      });
+    } else {
+      toast({
+        title: 'Failed to save journey',
+        description: 'Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleDelete = (id: string) => {
-    deleteJourney(id);
+  const handleDelete = async (id: string) => {
+    await deleteJourney(id);
     toast({
       title: 'Journey deleted',
       description: 'The journey has been removed from your log.',
     });
   };
+
+  // Show loading spinner while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Show auth form if not logged in
+  if (!user) {
+    return <AuthForm />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,7 +74,7 @@ const Index = () => {
               <div className="flex items-center gap-2 text-muted-foreground">
                 <History className="h-5 w-5" />
                 <span className="font-medium">
-                  {journeys.length} journey{journeys.length !== 1 ? 's' : ''} recorded
+                  {journeysLoading ? 'Loading...' : `${journeys.length} journey${journeys.length !== 1 ? 's' : ''} recorded`}
                 </span>
               </div>
               <Button onClick={() => setIsBuilding(true)}>
@@ -58,7 +83,13 @@ const Index = () => {
               </Button>
             </div>
             
-            <JourneyList journeys={journeys} onDelete={handleDelete} />
+            {journeysLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <JourneyList journeys={journeys} onDelete={handleDelete} />
+            )}
           </div>
         )}
       </main>

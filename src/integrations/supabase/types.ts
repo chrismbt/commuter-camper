@@ -14,7 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      journey_legs: {
+        Row: {
+          arrival_time: string
+          created_at: string
+          departure_time: string
+          device_id: number | null
+          from_station: string
+          id: string
+          journey_id: string
+          leg_order: number
+          operator: string | null
+          run_date: string
+          to_station: string
+          train_uid: string
+        }
+        Insert: {
+          arrival_time: string
+          created_at?: string
+          departure_time: string
+          device_id?: number | null
+          from_station: string
+          id?: string
+          journey_id: string
+          leg_order?: number
+          operator?: string | null
+          run_date: string
+          to_station: string
+          train_uid: string
+        }
+        Update: {
+          arrival_time?: string
+          created_at?: string
+          departure_time?: string
+          device_id?: number | null
+          from_station?: string
+          id?: string
+          journey_id?: string
+          leg_order?: number
+          operator?: string | null
+          run_date?: string
+          to_station?: string
+          train_uid?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_legs_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journeys: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
