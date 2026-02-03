@@ -52,7 +52,7 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
       return;
     }
     
-    const result = await searchTrains(fromStationData.code, toStationData.code, date, time);
+    const result = await searchTrains(fromStationData.code, toStationData.code, date, time, fromStationData.name, toStationData.name);
     
     if (result.success && result.data) {
       setSearchResults(result.data);

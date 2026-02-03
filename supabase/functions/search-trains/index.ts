@@ -298,7 +298,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { fromCrs, toCrs, date, time } = await req.json();
+    const { fromCrs, toCrs, date, time, fromName, toName } = await req.json();
 
     if (!fromCrs || !toCrs || !date || !time) {
       return new Response(
@@ -343,20 +343,19 @@ Deno.serve(async (req) => {
     const html = await response.text();
     console.log('Received HTML length:', html.length);
     
-    // Extract origin station name from the page header
-    const originStationName = extractOriginStationName(html);
+    // Use station names from frontend if provided, otherwise extract/lookup
+    let originStationName = fromName || extractOriginStationName(html);
+    if (!originStationName) {
+      originStationName = getStationNameFromCrs(fromCrs);
+    }
     console.log('Origin station:', originStationName);
     
     // Parse the HTML to extract train services
     const parsedTrains = parseSearchResultsToTrains(html);
     console.log('Parsed trains:', parsedTrains.length);
 
-    // We need to get the destination station name for fetching arrival times
-    // Extract it from the search results page or look it up from CRS code
-    let destinationStationName = extractDestinationStationName(html);
-    
-    // If we couldn't extract it, we'll need to use the CRS code to look it up
-    // For now, we'll use a simple mapping of common stations
+    // Use destination name from frontend if provided, otherwise extract/lookup
+    let destinationStationName = toName || extractDestinationStationName(html);
     if (!destinationStationName) {
       destinationStationName = getStationNameFromCrs(toCrs);
     }
