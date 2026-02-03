@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StationInput } from './StationInput';
 import { TrainCard } from './TrainCard';
 import { JourneyLeg, TrainService } from '@/types/train';
@@ -25,6 +26,7 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [deviceId, setDeviceId] = useState<number>(1);
 
   const handleSearch = async () => {
     if (!fromStation || !toStation) return;
@@ -76,6 +78,7 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
       departureTime: selectedTrain.departureTime,
       arrivalTime: selectedTrain.arrivalTime,
       operator: selectedTrain.atocName,
+      deviceId: deviceId,
     };
     
     setLegs([...legs, newLeg]);
@@ -106,6 +109,7 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
         departureTime: selectedTrain.departureTime,
         arrivalTime: selectedTrain.arrivalTime,
         operator: selectedTrain.atocName,
+        deviceId: deviceId,
       };
       onSave([...legs, finalLeg]);
     } else if (legs.length > 0) {
@@ -137,7 +141,14 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
                   {leg.departureTime} - {leg.arrivalTime} · {leg.operator}
                 </p>
               </div>
-              <p className="text-xs font-mono text-muted-foreground">{leg.trainUid}</p>
+              <div className="flex items-center gap-2">
+                {leg.deviceId && (
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded font-medium">
+                    Device {leg.deviceId}
+                  </span>
+                )}
+                <p className="text-xs font-mono text-muted-foreground">{leg.trainUid}</p>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -250,19 +261,39 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
 
       {/* Actions */}
       {selectedTrain && (
-        <div className="flex gap-3 pt-4 border-t border-border animate-slide-up">
-          <Button
-            variant="outline"
-            onClick={handleAddLeg}
-            className="flex-1"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add another train
-          </Button>
-          <Button onClick={handleSave} className="flex-1">
-            <Save className="h-4 w-4 mr-2" />
-            Save journey
-          </Button>
+        <div className="space-y-4 pt-4 border-t border-border animate-slide-up">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1.5">
+              Device ID
+            </label>
+            <Select value={deviceId.toString()} onValueChange={(val) => setDeviceId(parseInt(val))}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select device" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border border-border z-50">
+                {Array.from({ length: 25 }, (_, i) => i + 1).map((num) => (
+                  <SelectItem key={num} value={num.toString()}>
+                    Device {num}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={handleAddLeg}
+              className="flex-1"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add another train
+            </Button>
+            <Button onClick={handleSave} className="flex-1">
+              <Save className="h-4 w-4 mr-2" />
+              Save journey
+            </Button>
+          </div>
         </div>
       )}
 
