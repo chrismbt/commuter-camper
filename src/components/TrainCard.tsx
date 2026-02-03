@@ -48,12 +48,12 @@ export function TrainCard({ train, isSelected, onSelect }: TrainCardProps) {
           <div className="flex items-center gap-4 mb-3">
             <div className="text-center">
               <p className="time-display text-foreground">{train.departureTime}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Departs</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{train.origin}</p>
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <div className="text-center">
-              <p className="text-sm font-medium text-foreground">{train.origin}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">→ {train.destination}</p>
+              <p className="time-display text-foreground">{train.arrivalTime}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{train.destination}</p>
             </div>
           </div>
           
