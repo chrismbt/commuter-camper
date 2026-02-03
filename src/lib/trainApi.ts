@@ -11,11 +11,13 @@ export async function searchTrains(
   fromCrs: string,
   toCrs: string,
   date: string,
-  time: string
+  time: string,
+  fromName?: string,
+  toName?: string
 ): Promise<SearchTrainsResponse> {
   try {
     const { data, error } = await supabase.functions.invoke('search-trains', {
-      body: { fromCrs, toCrs, date, time },
+      body: { fromCrs, toCrs, date, time, fromName, toName },
     });
 
     if (error) {
