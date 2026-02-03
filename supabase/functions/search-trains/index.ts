@@ -368,8 +368,10 @@ Deno.serve(async (req) => {
       serviceUid: `${train.runDate.replace(/-/g, '')}${train.uid}`,
       atocCode: train.atocCode,
       atocName: getOperatorName(train.atocCode),
-      origin: train.origin === 'Origin' ? originStationName : train.origin,
-      destination: train.destination,
+      // Ensure UI and saved legs reflect the user's searched leg,
+      // not the train's full route origin/terminus.
+      origin: originStationName,
+      destination: destinationStationName,
       departureTime: train.departureTime,
       arrivalTime: arrivalTimes[index] || train.departureTime, // fallback to departure if not found
       platform: train.platform,
