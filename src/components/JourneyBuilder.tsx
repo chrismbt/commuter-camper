@@ -81,8 +81,10 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
     setLegs([...legs, newLeg]);
     
     // Reset for next leg - use the user's destination as the new origin
+    // and pre-populate time with arrival time of this leg
     setFromStation(toStation);
     setToStation('');
+    setTime(selectedTrain.arrivalTime);
     setSearchResults([]);
     setSelectedTrain(null);
     setHasSearched(false);
