@@ -24,6 +24,7 @@ export interface JourneyLeg {
   departureTime: string;
   arrivalTime: string;
   operator?: string;
+  deviceId?: number;
 }
 
 export interface Journey {
