@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Mail, Lock, Train } from 'lucide-react';
+import { Loader2, Mail, Lock, Train, UserCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export function AuthForm() {
@@ -10,8 +10,22 @@ export function AuthForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signUp, signIn } = useAuth();
+  const [guestLoading, setGuestLoading] = useState(false);
+  const { signUp, signIn, signInAnonymously } = useAuth();
   const { toast } = useToast();
+
+  const handleGuestAccess = async () => {
+    setGuestLoading(true);
+    const { error } = await signInAnonymously();
+    if (error) {
+      toast({
+        title: 'Guest access failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+    setGuestLoading(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,6 +130,38 @@ export function AuthForm() {
               {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
             </button>
           </div>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or</span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleGuestAccess}
+            disabled={guestLoading}
+          >
+            {guestLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Starting guest session...
+              </>
+            ) : (
+              <>
+                <UserCircle className="h-4 w-4 mr-2" />
+                Continue as guest
+              </>
+            )}
+          </Button>
+          <p className="text-xs text-center text-muted-foreground mt-2">
+            Guest data may be lost. Create an account to save permanently.
+          </p>
         </div>
       </div>
     </div>
