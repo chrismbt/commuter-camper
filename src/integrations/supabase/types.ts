@@ -19,7 +19,6 @@ export type Database = {
           arrival_time: string
           created_at: string
           departure_time: string
-          device_id: number | null
           from_station: string
           id: string
           journey_id: string
@@ -33,7 +32,6 @@ export type Database = {
           arrival_time: string
           created_at?: string
           departure_time: string
-          device_id?: number | null
           from_station: string
           id?: string
           journey_id: string
@@ -47,7 +45,6 @@ export type Database = {
           arrival_time?: string
           created_at?: string
           departure_time?: string
-          device_id?: number | null
           from_station?: string
           id?: string
           journey_id?: string
@@ -70,16 +67,19 @@ export type Database = {
       journeys: {
         Row: {
           created_at: string
+          device_id: number | null
           id: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          device_id?: number | null
           id?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          device_id?: number | null
           id?: string
           user_id?: string
         }

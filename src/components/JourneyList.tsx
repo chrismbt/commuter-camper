@@ -30,9 +30,16 @@ export function JourneyList({ journeys, onDelete }: JourneyListProps) {
         >
           <div className="p-4 border-b border-border bg-muted/50">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span>{format(new Date(journey.createdAt), 'PPP')}</span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  <span>{format(new Date(journey.createdAt), 'PPP')}</span>
+                </div>
+                {journey.deviceId && (
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded font-medium">
+                    Device {journey.deviceId}
+                  </span>
+                )}
               </div>
               <Button
                 variant="ghost"

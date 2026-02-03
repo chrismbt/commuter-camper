@@ -12,12 +12,12 @@ import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const [isBuilding, setIsBuilding] = useState(false);
-  const { journeys, loading: journeysLoading, addJourney, deleteJourney } = useJourneys();
+  const { journeys, loading: journeysLoading, addJourney, deleteJourney, getLastUsedDeviceId } = useJourneys();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
-  const handleSaveJourney = async (legs: JourneyLeg[]) => {
-    const result = await addJourney(legs);
+  const handleSaveJourney = async (legs: JourneyLeg[], deviceId: number) => {
+    const result = await addJourney(legs, deviceId);
     if (result) {
       setIsBuilding(false);
       toast({
@@ -66,6 +66,7 @@ const Index = () => {
             <JourneyBuilder
               onSave={handleSaveJourney}
               onCancel={() => setIsBuilding(false)}
+              initialDeviceId={getLastUsedDeviceId()}
             />
           </div>
         ) : (

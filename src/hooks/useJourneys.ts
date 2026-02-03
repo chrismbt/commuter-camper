@@ -54,6 +54,7 @@ export function useJourneys() {
     const mappedJourneys: Journey[] = journeysData.map((journey) => ({
       id: journey.id,
       createdAt: journey.created_at,
+      deviceId: journey.device_id || undefined,
       legs: legsData
         .filter((leg) => leg.journey_id === journey.id)
         .map((leg) => ({
@@ -65,7 +66,6 @@ export function useJourneys() {
           departureTime: leg.departure_time,
           arrivalTime: leg.arrival_time,
           operator: leg.operator || undefined,
-          deviceId: leg.device_id || undefined,
         })),
     }));
 
@@ -77,13 +77,13 @@ export function useJourneys() {
     fetchJourneys();
   }, [fetchJourneys]);
 
-  const addJourney = async (legs: JourneyLeg[]): Promise<Journey | null> => {
+  const addJourney = async (legs: JourneyLeg[], deviceId: number): Promise<Journey | null> => {
     if (!user) return null;
 
-    // Create the journey
+    // Create the journey with device_id
     const { data: journeyData, error: journeyError } = await supabase
       .from('journeys')
-      .insert({ user_id: user.id })
+      .insert({ user_id: user.id, device_id: deviceId })
       .select()
       .single();
 
@@ -102,7 +102,6 @@ export function useJourneys() {
       departure_time: leg.departureTime,
       arrival_time: leg.arrivalTime,
       operator: leg.operator || null,
-      device_id: leg.deviceId || null,
       leg_order: index,
     }));
 
@@ -120,11 +119,17 @@ export function useJourneys() {
     const newJourney: Journey = {
       id: journeyData.id,
       createdAt: journeyData.created_at,
+      deviceId,
       legs,
     };
 
     setJourneys((prev) => [newJourney, ...prev]);
     return newJourney;
+  };
+
+  const getLastUsedDeviceId = (): number | undefined => {
+    if (journeys.length === 0) return undefined;
+    return journeys[0].deviceId;
   };
 
   const deleteJourney = async (id: string) => {
@@ -161,5 +166,6 @@ export function useJourneys() {
     deleteJourney,
     clearAllJourneys,
     refetch: fetchJourneys,
+    getLastUsedDeviceId,
   };
 }
