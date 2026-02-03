@@ -13,9 +13,16 @@ interface TrainService {
   destination: string;
   departureTime: string;
   arrivalTime: string;
+  actualDepartureTime?: string;
+  actualArrivalTime?: string;
   platform?: string;
   status?: 'on-time' | 'delayed' | 'cancelled';
   trainId?: string;
+}
+
+interface StationTimes {
+  planned: string | null;
+  actual: string | null;
 }
 
 interface ParsedTrain {
@@ -96,7 +103,21 @@ function parseSearchResultsToTrains(html: string): ParsedTrain[] {
   });
 }
 
-async function fetchArrivalTime(uid: string, runDate: string, destinationStation: string): Promise<string | null> {
+interface FetchedTimes {
+  plannedArrival: string | null;
+  actualArrival: string | null;
+  plannedDeparture: string | null;
+  actualDeparture: string | null;
+}
+
+async function fetchStationTimes(uid: string, runDate: string, stationName: string, isOrigin: boolean): Promise<FetchedTimes> {
+  const result: FetchedTimes = {
+    plannedArrival: null,
+    actualArrival: null,
+    plannedDeparture: null,
+    actualDeparture: null,
+  };
+
   try {
     const url = `https://www.realtimetrains.co.uk/service/gb-nr:${uid}/${runDate}/detailed`;
     
@@ -108,74 +129,77 @@ async function fetchArrivalTime(uid: string, runDate: string, destinationStation
       },
     });
     
-    if (!response.ok) return null;
+    if (!response.ok) return result;
     
     const html = await response.text();
-    
-    // The RTT service page has calling points in a specific structure
-    // Each calling point is in a div with class "call" or similar
-    // We need to find the specific row for our destination station
-    
-    const destinationLower = destinationStation.toLowerCase().trim();
+    const stationLower = stationName.toLowerCase().trim();
     
     // Split HTML into calling point sections
-    // Look for pattern where station name is in a location div followed by times in gbtt div
-    // Structure: <div class="location">...<a>Station Name</a>...</div>...<div class="gbtt"><div class="arr">HHMM</div>
-    
-    // Find all calling points by splitting on the call div pattern
     const callingPoints = html.split(/<div[^>]*class="[^"]*\bcall\b[^"]*"[^>]*>/i);
     
     for (const point of callingPoints) {
-      // Check if this calling point contains our destination station
-      // Look for the station name in a link
+      // Check if this calling point contains our station
       const stationMatch = point.match(/<a[^>]*>([^<]+)<\/a>/i);
       if (!stationMatch) continue;
       
-      const stationName = stationMatch[1].toLowerCase().trim();
+      const foundStation = stationMatch[1].toLowerCase().trim();
       
-      // Check if this station matches our destination (partial match for flexibility)
-      if (!stationName.includes(destinationLower) && !destinationLower.includes(stationName)) {
+      // Check if this station matches (partial match for flexibility)
+      if (!foundStation.includes(stationLower) && !stationLower.includes(foundStation)) {
         continue;
       }
       
-      // Found our station! Now extract the arrival time
-      // Look for the GBTT arrival time: <div class="arr">HHMM</div>
-      // We need to be careful to get the GBTT (booked) time, not the actual time
+      // Found our station! Extract times
+      // RTT structure: gbtt div contains planned times, act div contains actual times
       
-      // Pattern 1: <div class="gbtt">...<div class="arr">1234</div>
+      // Extract planned arrival time from gbtt section
       const gbttMatch = point.match(/<div[^>]*class="[^"]*\bgbtt\b[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/i);
       if (gbttMatch) {
         const gbttContent = gbttMatch[1];
         const arrMatch = gbttContent.match(/<div[^>]*class="[^"]*\barr\b[^"]*"[^>]*>(\d{4})<\/div>/i);
         if (arrMatch) {
-          const time = arrMatch[1];
-          console.log(`Found arrival time ${time} for ${destinationStation} on service ${uid}`);
-          return `${time.substring(0, 2)}:${time.substring(2, 4)}`;
+          result.plannedArrival = `${arrMatch[1].substring(0, 2)}:${arrMatch[1].substring(2, 4)}`;
+        }
+        const depMatch = gbttContent.match(/<div[^>]*class="[^"]*\bdep\b[^"]*"[^>]*>(\d{4})<\/div>/i);
+        if (depMatch) {
+          result.plannedDeparture = `${depMatch[1].substring(0, 2)}:${depMatch[1].substring(2, 4)}`;
         }
       }
       
-      // Pattern 2: Direct arr div in the calling point
-      const directArrMatch = point.match(/<div[^>]*class="[^"]*\barr\b[^"]*\bgbtt\b[^"]*"[^>]*>(\d{4})<\/div>/i);
-      if (directArrMatch) {
-        const time = directArrMatch[1];
-        console.log(`Found arrival time (alt) ${time} for ${destinationStation} on service ${uid}`);
-        return `${time.substring(0, 2)}:${time.substring(2, 4)}`;
+      // Extract actual times from act section
+      const actMatch = point.match(/<div[^>]*class="[^"]*\bact\b[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/i);
+      if (actMatch) {
+        const actContent = actMatch[1];
+        const actArrMatch = actContent.match(/<div[^>]*class="[^"]*\barr\b[^"]*"[^>]*>(\d{4})<\/div>/i);
+        if (actArrMatch) {
+          result.actualArrival = `${actArrMatch[1].substring(0, 2)}:${actArrMatch[1].substring(2, 4)}`;
+        }
+        const actDepMatch = actContent.match(/<div[^>]*class="[^"]*\bdep\b[^"]*"[^>]*>(\d{4})<\/div>/i);
+        if (actDepMatch) {
+          result.actualDeparture = `${actDepMatch[1].substring(0, 2)}:${actDepMatch[1].substring(2, 4)}`;
+        }
       }
       
-      // Pattern 3: arr with plan class
-      const planArrMatch = point.match(/<div[^>]*class="[^"]*\btime\b[^"]*\bplan\b[^"]*\ba\b[^"]*"[^>]*>(\d{4})<\/div>/i);
-      if (planArrMatch) {
-        const time = planArrMatch[1];
-        console.log(`Found arrival time (plan) ${time} for ${destinationStation} on service ${uid}`);
-        return `${time.substring(0, 2)}:${time.substring(2, 4)}`;
+      // Also try alternative patterns for actual times
+      // Pattern: <div class="time act a">1234</div> for actual arrival
+      const altActArrMatch = point.match(/<div[^>]*class="[^"]*\btime\b[^"]*\bact\b[^"]*\ba\b[^"]*"[^>]*>(\d{4})<\/div>/i);
+      if (altActArrMatch && !result.actualArrival) {
+        result.actualArrival = `${altActArrMatch[1].substring(0, 2)}:${altActArrMatch[1].substring(2, 4)}`;
       }
+      
+      const altActDepMatch = point.match(/<div[^>]*class="[^"]*\btime\b[^"]*\bact\b[^"]*\bd\b[^"]*"[^>]*>(\d{4})<\/div>/i);
+      if (altActDepMatch && !result.actualDeparture) {
+        result.actualDeparture = `${altActDepMatch[1].substring(0, 2)}:${altActDepMatch[1].substring(2, 4)}`;
+      }
+      
+      console.log(`Found times for ${stationName} on service ${uid}: planned arr=${result.plannedArrival}, actual arr=${result.actualArrival}, planned dep=${result.plannedDeparture}, actual dep=${result.actualDeparture}`);
+      break;
     }
     
-    console.log(`Could not find arrival time for ${destinationStation} on service ${uid}`);
-    return null;
+    return result;
   } catch (error) {
-    console.error(`Error fetching arrival time for ${uid}:`, error);
-    return null;
+    console.error(`Error fetching times for ${uid}:`, error);
+    return result;
   }
 }
 
@@ -361,27 +385,37 @@ Deno.serve(async (req) => {
     }
     console.log('Destination station for arrival lookup:', destinationStationName);
 
-    // Fetch arrival times for each train at the USER'S destination (not train terminus)
+    // Fetch times for each train at both origin and destination stations
     const trainsToFetch = parsedTrains.slice(0, 10);
-    const arrivalPromises = trainsToFetch.map(train => 
-      fetchArrivalTime(train.uid, train.runDate, destinationStationName)
+    
+    // Fetch destination times (for arrival)
+    const destTimesPromises = trainsToFetch.map(train => 
+      fetchStationTimes(train.uid, train.runDate, destinationStationName, false)
     );
     
-    const arrivalTimes = await Promise.all(arrivalPromises);
+    // Fetch origin times (for departure) - we need actual departure times too
+    const originTimesPromises = trainsToFetch.map(train => 
+      fetchStationTimes(train.uid, train.runDate, originStationName, true)
+    );
     
-    // Build the final train services with arrival times
+    const [destTimes, originTimes] = await Promise.all([
+      Promise.all(destTimesPromises),
+      Promise.all(originTimesPromises)
+    ]);
+    
+    // Build the final train services with all times
     const trains: TrainService[] = trainsToFetch.map((train, index) => ({
       trainUid: train.uid,
       runDate: train.runDate,
       serviceUid: `${train.runDate.replace(/-/g, '')}${train.uid}`,
       atocCode: train.atocCode,
       atocName: getOperatorName(train.atocCode),
-      // Ensure UI and saved legs reflect the user's searched leg,
-      // not the train's full route origin/terminus.
       origin: originStationName,
       destination: destinationStationName,
-      departureTime: train.departureTime,
-      arrivalTime: arrivalTimes[index] || train.departureTime, // fallback to departure if not found
+      departureTime: originTimes[index]?.plannedDeparture || train.departureTime,
+      arrivalTime: destTimes[index]?.plannedArrival || train.departureTime,
+      actualDepartureTime: originTimes[index]?.actualDeparture || undefined,
+      actualArrivalTime: destTimes[index]?.actualArrival || undefined,
       platform: train.platform,
       trainId: train.trainId,
     }));
