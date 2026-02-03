@@ -8,6 +8,8 @@ export interface TrainService {
   destination: string;
   departureTime: string;
   arrivalTime: string;
+  actualDepartureTime?: string;
+  actualArrivalTime?: string;
   platform?: string;
   status?: 'on-time' | 'delayed' | 'cancelled';
   trainId?: string;

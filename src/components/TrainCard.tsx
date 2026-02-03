@@ -48,11 +48,17 @@ export function TrainCard({ train, isSelected, onSelect }: TrainCardProps) {
           <div className="flex items-center gap-4 mb-3">
             <div className="text-center">
               <p className="time-display text-foreground">{train.departureTime}</p>
+              {train.actualDepartureTime && train.actualDepartureTime !== train.departureTime && (
+                <p className="text-sm font-semibold text-destructive">{train.actualDepartureTime}</p>
+              )}
               <p className="text-xs text-muted-foreground mt-0.5">{train.origin}</p>
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <div className="text-center">
               <p className="time-display text-foreground">{train.arrivalTime}</p>
+              {train.actualArrivalTime && train.actualArrivalTime !== train.arrivalTime && (
+                <p className="text-sm font-semibold text-destructive">{train.actualArrivalTime}</p>
+              )}
               <p className="text-xs text-muted-foreground mt-0.5">{train.destination}</p>
             </div>
           </div>
