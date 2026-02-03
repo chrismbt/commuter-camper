@@ -325,9 +325,18 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       console.error('RTT fetch failed:', response.status, response.statusText);
+      
+      // Provide more helpful error messages based on status
+      let errorMessage = `Failed to fetch from RTT: ${response.status}`;
+      if (response.status === 400) {
+        errorMessage = `No route found between ${fromCrs} and ${toCrs}. One or both station codes may be invalid, or there may be no direct services on this route.`;
+      } else if (response.status === 404) {
+        errorMessage = `Route not found. Please check the station codes are correct.`;
+      }
+      
       return new Response(
-        JSON.stringify({ success: false, error: `Failed to fetch from RTT: ${response.status}` }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, error: errorMessage }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
