@@ -144,8 +144,19 @@ async function fetchStationTimes(uid: string, runDate: string, stationName: stri
       
       const foundStation = stationMatch[1].toLowerCase().trim();
       
-      // Check if this station matches (partial match for flexibility)
-      if (!foundStation.includes(stationLower) && !stationLower.includes(foundStation)) {
+      // Check if this station matches using multiple strategies:
+      // 1. Exact match
+      // 2. One contains the other
+      // 3. Key words match (e.g., "St Pancras" matches "London St Pancras International")
+      const stationWords = stationLower.split(/\s+/).filter(w => w.length > 2);
+      const foundWords = foundStation.split(/\s+/).filter(w => w.length > 2);
+      
+      const exactMatch = foundStation === stationLower;
+      const containsMatch = foundStation.includes(stationLower) || stationLower.includes(foundStation);
+      const keyWordsMatch = stationWords.length > 0 && foundWords.length > 0 && 
+        stationWords.some(sw => foundWords.some(fw => fw.includes(sw) || sw.includes(fw)));
+      
+      if (!exactMatch && !containsMatch && !keyWordsMatch) {
         continue;
       }
       
