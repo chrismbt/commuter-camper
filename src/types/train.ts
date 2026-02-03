@@ -24,12 +24,12 @@ export interface JourneyLeg {
   departureTime: string;
   arrivalTime: string;
   operator?: string;
-  deviceId?: number;
 }
 
 export interface Journey {
   id: string;
   createdAt: string;
+  deviceId?: number;
   legs: JourneyLeg[];
 }
 

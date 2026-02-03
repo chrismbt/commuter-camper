@@ -11,11 +11,14 @@ import { Search, Plus, Save, X, Train, Loader2, AlertCircle } from 'lucide-react
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface JourneyBuilderProps {
-  onSave: (legs: JourneyLeg[]) => void;
+  onSave: (legs: JourneyLeg[], deviceId: number) => void;
   onCancel: () => void;
+  initialDeviceId?: number;
 }
 
-export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
+export function JourneyBuilder({ onSave, onCancel, initialDeviceId }: JourneyBuilderProps) {
+  const [deviceId, setDeviceId] = useState<number>(initialDeviceId || 1);
+  const [deviceSelected, setDeviceSelected] = useState(false);
   const [legs, setLegs] = useState<JourneyLeg[]>([]);
   const [fromStation, setFromStation] = useState('');
   const [toStation, setToStation] = useState('');
@@ -26,7 +29,6 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [deviceId, setDeviceId] = useState<number>(1);
 
   const handleSearch = async () => {
     if (!fromStation || !toStation) return;
@@ -78,7 +80,6 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
       departureTime: selectedTrain.departureTime,
       arrivalTime: selectedTrain.arrivalTime,
       operator: selectedTrain.atocName,
-      deviceId: deviceId,
     };
     
     setLegs([...legs, newLeg]);
@@ -109,18 +110,74 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
         departureTime: selectedTrain.departureTime,
         arrivalTime: selectedTrain.arrivalTime,
         operator: selectedTrain.atocName,
-        deviceId: deviceId,
       };
-      onSave([...legs, finalLeg]);
+      onSave([...legs, finalLeg], deviceId);
     } else if (legs.length > 0) {
-      onSave(legs);
+      onSave(legs, deviceId);
     }
   };
 
   const canSave = legs.length > 0 || selectedTrain !== null;
 
+  // Step 1: Device selection
+  if (!deviceSelected) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center space-y-2">
+          <Train className="h-12 w-12 mx-auto text-primary" />
+          <h3 className="text-lg font-medium">Select Device</h3>
+          <p className="text-sm text-muted-foreground">
+            Which device are you using for this journey?
+          </p>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5">
+            Device ID
+          </label>
+          <Select value={deviceId.toString()} onValueChange={(val) => setDeviceId(parseInt(val))}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select device" />
+            </SelectTrigger>
+            <SelectContent className="bg-background border border-border z-50">
+              {Array.from({ length: 25 }, (_, i) => i + 1).map((num) => (
+                <SelectItem key={num} value={num.toString()}>
+                  Device {num}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex gap-3">
+          <Button variant="ghost" onClick={onCancel} className="flex-1">
+            Cancel
+          </Button>
+          <Button onClick={() => setDeviceSelected(true)} className="flex-1">
+            Continue
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Device badge */}
+      <div className="flex items-center justify-between">
+        <span className="text-sm bg-primary/10 text-primary px-3 py-1 rounded-full font-medium">
+          Device {deviceId}
+        </span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setDeviceSelected(false)}
+          className="text-xs"
+        >
+          Change device
+        </Button>
+      </div>
+
       {/* Current legs */}
       {legs.length > 0 && (
         <div className="space-y-3">
@@ -141,14 +198,7 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
                   {leg.departureTime} - {leg.arrivalTime} · {leg.operator}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                {leg.deviceId && (
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded font-medium">
-                    Device {leg.deviceId}
-                  </span>
-                )}
-                <p className="text-xs font-mono text-muted-foreground">{leg.trainUid}</p>
-              </div>
+              <p className="text-xs font-mono text-muted-foreground">{leg.trainUid}</p>
               <Button
                 variant="ghost"
                 size="icon"
@@ -261,39 +311,19 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
 
       {/* Actions */}
       {selectedTrain && (
-        <div className="space-y-4 pt-4 border-t border-border animate-slide-up">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
-              Device ID
-            </label>
-            <Select value={deviceId.toString()} onValueChange={(val) => setDeviceId(parseInt(val))}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select device" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border border-border z-50">
-                {Array.from({ length: 25 }, (_, i) => i + 1).map((num) => (
-                  <SelectItem key={num} value={num.toString()}>
-                    Device {num}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={handleAddLeg}
-              className="flex-1"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add another train
-            </Button>
-            <Button onClick={handleSave} className="flex-1">
-              <Save className="h-4 w-4 mr-2" />
-              Save journey
-            </Button>
-          </div>
+        <div className="flex gap-3 pt-4 border-t border-border animate-slide-up">
+          <Button
+            variant="outline"
+            onClick={handleAddLeg}
+            className="flex-1"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add another train
+          </Button>
+          <Button onClick={handleSave} className="flex-1">
+            <Save className="h-4 w-4 mr-2" />
+            Save journey
+          </Button>
         </div>
       )}
 
