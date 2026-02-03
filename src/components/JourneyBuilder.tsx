@@ -238,6 +238,7 @@ export function JourneyBuilder({ onSave, onCancel, initialDeviceId }: JourneyBui
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
+              min={new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
             />
           </div>
           <div>
