@@ -112,56 +112,66 @@ async function fetchArrivalTime(uid: string, runDate: string, destinationStation
     
     const html = await response.text();
     
-    // Find the destination station in the location list and get its arrival time
-    // Look for pattern: <div class="location"><a...>Station Name</a></div>...<div class="gbtt"><div class="arr">HHMM</div>
-    // The structure is: location row with station name, then arrival time in gbtt arr div
+    // The RTT service page has calling points in a specific structure
+    // Each calling point is in a div with class "call" or similar
+    // We need to find the specific row for our destination station
     
-    // First, find all location rows
-    const destinationLower = destinationStation.toLowerCase();
+    const destinationLower = destinationStation.toLowerCase().trim();
     
-    // Match location rows - each row contains location and times
-    const rowRegex = /<div[^>]*class="call[^"]*"[^>]*>([\s\S]*?)<\/div>\s*(?=<div[^>]*class="call|<\/div>\s*<\/div>)/gi;
+    // Split HTML into calling point sections
+    // Look for pattern where station name is in a location div followed by times in gbtt div
+    // Structure: <div class="location">...<a>Station Name</a>...</div>...<div class="gbtt"><div class="arr">HHMM</div>
     
-    // Simpler approach: find the station name and look for nearby arrival time
-    // Pattern: station name followed by arrival time in gbtt arr
-    const stationRegex = new RegExp(
-      `<div[^>]*class="location"[^>]*>[^<]*<a[^>]*>([^<]*${destinationLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^<]*)<\\/a>`,
-      'i'
-    );
+    // Find all calling points by splitting on the call div pattern
+    const callingPoints = html.split(/<div[^>]*class="[^"]*\bcall\b[^"]*"[^>]*>/i);
     
-    const stationMatch = html.match(stationRegex);
-    if (!stationMatch) {
-      // Try a broader match for the destination
-      const broadRegex = new RegExp(destinationLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      if (!broadRegex.test(html)) return null;
+    for (const point of callingPoints) {
+      // Check if this calling point contains our destination station
+      // Look for the station name in a link
+      const stationMatch = point.match(/<a[^>]*>([^<]+)<\/a>/i);
+      if (!stationMatch) continue;
+      
+      const stationName = stationMatch[1].toLowerCase().trim();
+      
+      // Check if this station matches our destination (partial match for flexibility)
+      if (!stationName.includes(destinationLower) && !destinationLower.includes(stationName)) {
+        continue;
+      }
+      
+      // Found our station! Now extract the arrival time
+      // Look for the GBTT arrival time: <div class="arr">HHMM</div>
+      // We need to be careful to get the GBTT (booked) time, not the actual time
+      
+      // Pattern 1: <div class="gbtt">...<div class="arr">1234</div>
+      const gbttMatch = point.match(/<div[^>]*class="[^"]*\bgbtt\b[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/i);
+      if (gbttMatch) {
+        const gbttContent = gbttMatch[1];
+        const arrMatch = gbttContent.match(/<div[^>]*class="[^"]*\barr\b[^"]*"[^>]*>(\d{4})<\/div>/i);
+        if (arrMatch) {
+          const time = arrMatch[1];
+          console.log(`Found arrival time ${time} for ${destinationStation} on service ${uid}`);
+          return `${time.substring(0, 2)}:${time.substring(2, 4)}`;
+        }
+      }
+      
+      // Pattern 2: Direct arr div in the calling point
+      const directArrMatch = point.match(/<div[^>]*class="[^"]*\barr\b[^"]*\bgbtt\b[^"]*"[^>]*>(\d{4})<\/div>/i);
+      if (directArrMatch) {
+        const time = directArrMatch[1];
+        console.log(`Found arrival time (alt) ${time} for ${destinationStation} on service ${uid}`);
+        return `${time.substring(0, 2)}:${time.substring(2, 4)}`;
+      }
+      
+      // Pattern 3: arr with plan class
+      const planArrMatch = point.match(/<div[^>]*class="[^"]*\btime\b[^"]*\bplan\b[^"]*\ba\b[^"]*"[^>]*>(\d{4})<\/div>/i);
+      if (planArrMatch) {
+        const time = planArrMatch[1];
+        console.log(`Found arrival time (plan) ${time} for ${destinationStation} on service ${uid}`);
+        return `${time.substring(0, 2)}:${time.substring(2, 4)}`;
+      }
     }
     
-    // Find the section containing this station and extract the arrival time
-    // Look for the calling point entry with this station
-    const callingPointRegex = new RegExp(
-      `<div[^>]*class="call[^"]*"[^>]*>[\\s\\S]*?${destinationLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]*?<div[^>]*class="gbtt"[^>]*>[\\s\\S]*?<div[^>]*class="arr"[^>]*>(\\d{4})<\\/div>`,
-      'i'
-    );
-    
-    const arrivalMatch = html.match(callingPointRegex);
-    if (arrivalMatch) {
-      const time = arrivalMatch[1];
-      return `${time.substring(0, 2)}:${time.substring(2, 4)}`;
-    }
-    
-    // Alternative: try to find GBTT arrival time near the destination name
-    // The service page shows times in format: <div class="gbtt"><div class="arr">1045</div><div class="dep"></div></div>
-    const altRegex = new RegExp(
-      `${destinationLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]{0,500}<div[^>]*class="arr"[^>]*>(\\d{4})<\\/div>`,
-      'i'
-    );
-    
-    const altMatch = html.match(altRegex);
-    if (altMatch) {
-      const time = altMatch[1];
-      return `${time.substring(0, 2)}:${time.substring(2, 4)}`;
-    }
-    
+    console.log(`Could not find arrival time for ${destinationStation} on service ${uid}`);
     return null;
   } catch (error) {
     console.error(`Error fetching arrival time for ${uid}:`, error);
