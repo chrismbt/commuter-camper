@@ -280,34 +280,51 @@ export function JourneyBuilder({ onSave, onCancel, initialDeviceId }: JourneyBui
       )}
 
       {/* Search results */}
-      {hasSearched && !isSearching && !searchError && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            {searchResults.length > 0 
-              ? `${searchResults.length} trains found` 
-              : 'No trains found'}
-          </h3>
-          
-          {searchResults.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Train className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>No services found for this route and time.</p>
-              <p className="text-sm">Try adjusting your search criteria.</p>
+      {hasSearched && !isSearching && !searchError && (() => {
+        // Filter out trains that depart before the previous leg's arrival time
+        const lastLeg = legs.length > 0 ? legs[legs.length - 1] : null;
+        const filteredResults = lastLeg
+          ? searchResults.filter(train => train.departureTime >= lastLeg.arrivalTime)
+          : searchResults;
+        
+        return (
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              {filteredResults.length > 0 
+                ? `${filteredResults.length} trains found${lastLeg && filteredResults.length < searchResults.length ? ` (${searchResults.length - filteredResults.length} excluded - depart before ${lastLeg.arrivalTime})` : ''}` 
+                : 'No trains found'}
+            </h3>
+            
+            {filteredResults.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Train className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                {lastLeg && searchResults.length > 0 ? (
+                  <>
+                    <p>No trains depart after your arrival at {lastLeg.arrivalTime}.</p>
+                    <p className="text-sm">Try searching for a later time.</p>
+                  </>
+                ) : (
+                  <>
+                    <p>No services found for this route and time.</p>
+                    <p className="text-sm">Try adjusting your search criteria.</p>
+                  </>
+                )}
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              {filteredResults.map((train) => (
+                <TrainCard
+                  key={train.trainUid}
+                  train={train}
+                  isSelected={selectedTrain?.trainUid === train.trainUid}
+                  onSelect={() => setSelectedTrain(train)}
+                />
+              ))}
             </div>
-          )}
-          
-          <div className="space-y-2">
-            {searchResults.map((train) => (
-              <TrainCard
-                key={train.trainUid}
-                train={train}
-                isSelected={selectedTrain?.trainUid === train.trainUid}
-                onSelect={() => setSelectedTrain(train)}
-              />
-            ))}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Actions */}
       {selectedTrain && (
