@@ -1,9 +1,9 @@
-import { Train, LogOut } from 'lucide-react';
+import { Train, LogOut, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 
 export function Header() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAnonymous } = useAuth();
 
   const handleSignOut = async () => {
     await signOut();
@@ -25,15 +25,23 @@ export function Header() {
             </p>
           </div>
           {user && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSignOut}
-              className="text-primary-foreground hover:bg-primary-foreground/10"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign out
-            </Button>
+            <div className="flex items-center gap-2">
+              {isAnonymous && (
+                <span className="text-xs bg-primary-foreground/20 text-primary-foreground px-2 py-1 rounded flex items-center gap-1">
+                  <UserCircle className="h-3 w-3" />
+                  Guest
+                </span>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+                className="text-primary-foreground hover:bg-primary-foreground/10"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                {isAnonymous ? 'Exit' : 'Sign out'}
+              </Button>
+            </div>
           )}
         </div>
       </div>
