@@ -71,8 +71,8 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
       id: crypto.randomUUID(),
       trainUid: selectedTrain.trainUid,
       runDate: selectedTrain.runDate,
-      fromStation: selectedTrain.origin,
-      toStation: selectedTrain.destination,
+      fromStation: fromStation,
+      toStation: toStation,
       departureTime: selectedTrain.departureTime,
       arrivalTime: selectedTrain.arrivalTime,
       operator: selectedTrain.atocName,
@@ -80,8 +80,8 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
     
     setLegs([...legs, newLeg]);
     
-    // Reset for next leg
-    setFromStation(selectedTrain.destination);
+    // Reset for next leg - use the user's destination as the new origin
+    setFromStation(toStation);
     setToStation('');
     setSearchResults([]);
     setSelectedTrain(null);
@@ -99,8 +99,8 @@ export function JourneyBuilder({ onSave, onCancel }: JourneyBuilderProps) {
         id: crypto.randomUUID(),
         trainUid: selectedTrain.trainUid,
         runDate: selectedTrain.runDate,
-        fromStation: selectedTrain.origin,
-        toStation: selectedTrain.destination,
+        fromStation: fromStation,
+        toStation: toStation,
         departureTime: selectedTrain.departureTime,
         arrivalTime: selectedTrain.arrivalTime,
         operator: selectedTrain.atocName,
