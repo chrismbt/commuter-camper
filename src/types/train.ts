@@ -10,6 +10,7 @@ export interface TrainService {
   arrivalTime: string;
   platform?: string;
   status?: 'on-time' | 'delayed' | 'cancelled';
+  trainId?: string;
 }
 
 export interface JourneyLeg {
