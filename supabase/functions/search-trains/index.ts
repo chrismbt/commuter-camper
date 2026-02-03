@@ -110,7 +110,7 @@ interface FetchedTimes {
   actualDeparture: string | null;
 }
 
-async function fetchStationTimes(uid: string, runDate: string, stationName: string, isOrigin: boolean): Promise<FetchedTimes> {
+async function fetchStationTimes(uid: string, runDate: string, crsCode: string): Promise<FetchedTimes> {
   const result: FetchedTimes = {
     plannedArrival: null,
     actualArrival: null,
@@ -132,31 +132,22 @@ async function fetchStationTimes(uid: string, runDate: string, stationName: stri
     if (!response.ok) return result;
     
     const html = await response.text();
-    const stationLower = stationName.toLowerCase().trim();
+    const crsLower = crsCode.toLowerCase().trim();
     
     // Split HTML into calling point sections
     const callingPoints = html.split(/<div[^>]*class="[^"]*\bcall\b[^"]*"[^>]*>/i);
     
     for (const point of callingPoints) {
-      // Check if this calling point contains our station
-      const stationMatch = point.match(/<a[^>]*>([^<]+)<\/a>/i);
-      if (!stationMatch) continue;
+      // Look for the CRS code in the station link: href="/search/.../gb-nr:STP/..."
+      // or in the station link text which may include the CRS
+      const crsMatch = point.match(/href="[^"]*\/gb-nr:([A-Z]{3})[^"]*"/i);
       
-      const foundStation = stationMatch[1].toLowerCase().trim();
+      if (!crsMatch) continue;
       
-      // Check if this station matches using multiple strategies:
-      // 1. Exact match
-      // 2. One contains the other
-      // 3. Key words match (e.g., "St Pancras" matches "London St Pancras International")
-      const stationWords = stationLower.split(/\s+/).filter(w => w.length > 2);
-      const foundWords = foundStation.split(/\s+/).filter(w => w.length > 2);
+      const foundCrs = crsMatch[1].toLowerCase();
       
-      const exactMatch = foundStation === stationLower;
-      const containsMatch = foundStation.includes(stationLower) || stationLower.includes(foundStation);
-      const keyWordsMatch = stationWords.length > 0 && foundWords.length > 0 && 
-        stationWords.some(sw => foundWords.some(fw => fw.includes(sw) || sw.includes(fw)));
-      
-      if (!exactMatch && !containsMatch && !keyWordsMatch) {
+      // Match by CRS code - this is reliable!
+      if (foundCrs !== crsLower) {
         continue;
       }
       
@@ -203,7 +194,7 @@ async function fetchStationTimes(uid: string, runDate: string, stationName: stri
         result.actualDeparture = `${altActDepMatch[1].substring(0, 2)}:${altActDepMatch[1].substring(2, 4)}`;
       }
       
-      console.log(`Found times for ${stationName} on service ${uid}: planned arr=${result.plannedArrival}, actual arr=${result.actualArrival}, planned dep=${result.plannedDeparture}, actual dep=${result.actualDeparture}`);
+      console.log(`Found times for ${crsCode} on service ${uid}: planned arr=${result.plannedArrival}, actual arr=${result.actualArrival}, planned dep=${result.plannedDeparture}, actual dep=${result.actualDeparture}`);
       break;
     }
     
@@ -396,17 +387,17 @@ Deno.serve(async (req) => {
     }
     console.log('Destination station for arrival lookup:', destinationStationName);
 
-    // Fetch times for each train at both origin and destination stations
+    // Fetch times for each train at both origin and destination stations using CRS codes
     const trainsToFetch = parsedTrains.slice(0, 10);
     
-    // Fetch destination times (for arrival)
+    // Fetch destination times (for arrival) using CRS code
     const destTimesPromises = trainsToFetch.map(train => 
-      fetchStationTimes(train.uid, train.runDate, destinationStationName, false)
+      fetchStationTimes(train.uid, train.runDate, toCrs)
     );
     
-    // Fetch origin times (for departure) - we need actual departure times too
+    // Fetch origin times (for departure) using CRS code
     const originTimesPromises = trainsToFetch.map(train => 
-      fetchStationTimes(train.uid, train.runDate, originStationName, true)
+      fetchStationTimes(train.uid, train.runDate, fromCrs)
     );
     
     const [destTimes, originTimes] = await Promise.all([
